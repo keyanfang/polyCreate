@@ -100,8 +100,8 @@ public class PolyCreateControler extends Supervisor {
 		theFSM = new RobotStateMachine(); 
 		TimerService timer = new TimerService();
 		theFSM.setTimerService(timer);
-		theFSM.enter();
 		
+
 		
 		
 		
@@ -174,7 +174,10 @@ public class PolyCreateControler extends Supervisor {
 				ctrl.delete();
 			}
 		});
+		
+		theFSM.enter();
 	}
+	
 
 
 	public void openGripper() {
@@ -221,7 +224,21 @@ public class PolyCreateControler extends Supervisor {
 		leftMotor.setVelocity(-HALF_SPEED);
 		rightMotor.setVelocity(-HALF_SPEED);
 	}
+	
+	public void leftTurn() {
+		
+		
+	}
 
+	public void rightTurn() {
+		
+		
+	}
+	
+	public void isBump() {
+		
+	}
+	
 	public void stop() {
 		leftMotor.setVelocity(NULL_SPEED);
 		rightMotor.setVelocity(NULL_SPEED);
@@ -270,6 +287,8 @@ public class PolyCreateControler extends Supervisor {
 	public double[] getPosition() {
 		return gps.getValues();
 	}
+	
+	
 
 
 	public static void main(String[] args) {
@@ -343,15 +362,17 @@ public class PolyCreateControler extends Supervisor {
 			controler.delete();
 		}
 
-
+		
 
 	}
-
+	
 
 	@Override
 	protected void finalize() {
 		this.delete();
 		super.finalize();
 	}
+	
+	
 
 }

@@ -96,11 +96,11 @@ public class PolyCreateControler extends Supervisor {
 
 
 	public PolyCreateControler() {
-<<<<<<< Updated upstream
-		timestep = (int) Math.round(this.getBasicTimeStep());//round四舍五入正数，时间步骤
-=======
+
+
+
 		timestep = (int) Math.round(this.getBasicTimeStep());//round四舍五入，时间步骤
->>>>>>> Stashed changes
+
 
 		theFSM = new RobotStateMachine(); 
 		TimerService timer = new TimerService();

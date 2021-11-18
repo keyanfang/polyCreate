@@ -11,6 +11,6 @@ public class myGoBackwardObserver implements Observer<Void> {
 @Override
 public void next(Void value) {
 System.out.println("this is a reaction to goBackward event");
-	gui.goBackward();
+	gui.backTurn();
 }
 }

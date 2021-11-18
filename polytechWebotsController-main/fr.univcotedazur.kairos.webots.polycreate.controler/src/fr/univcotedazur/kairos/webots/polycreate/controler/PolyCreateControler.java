@@ -95,11 +95,17 @@ public class PolyCreateControler extends Supervisor {
 
 
 	public PolyCreateControler() {
-		timestep = (int) Math.round(this.getBasicTimeStep());//round四舍五入证书，时间步骤
+		timestep = (int) Math.round(this.getBasicTimeStep());//round四舍五入正数，时间步骤
 
 		theFSM = new RobotStateMachine(); 
 		TimerService timer = new TimerService();
 		theFSM.setTimerService(timer);
+		
+		theFSM.getDoForward().subscribe(new myDoForwardObserver(this));
+		theFSM.getLeftTurn().subscribe(new myLeftTurnObserver(this));
+		theFSM.getRightTurn().subscribe(new myRightTurnObserver(this));
+		theFSM.getBackTurn().subscribe(new myGoBackwardObserver(this));
+		theFSM.getIsBump().subscribe(new myIsBumpObserver(this));
 		
 
 		
@@ -225,18 +231,44 @@ public class PolyCreateControler extends Supervisor {
 		rightMotor.setVelocity(-HALF_SPEED);
 	}
 	
+	public void backTurn() {
+		goBackward();
+		passiveWait(0.5);
+		turn(Math.PI);
+	}
+	
 	public void leftTurn() {
+		 
+			System.out.println("          Left obstacle detected\n");
+			goBackward();
+			passiveWait(0.5);
+			turn(Math.PI * randdouble()+0.6);
 		
 		
 	}
 
 	public void rightTurn() {
 		
+			System.out.println("          Right obstacle detected\n");
+			goBackward();
+			passiveWait(0.5);
+			turn(-Math.PI * randdouble()+0.6);
+			
 		
 	}
 	
 	public void isBump() {
-		
+		if (isThereVirtualwall()) {
+			System.out.println("Virtual wall detected\n");
+//			controler.turn(Math.PI);
+			theFSM.raiseSenseFall();
+		} else if (isThereCollisionAtLeft() || frontLeftDistanceSensor.getValue() < 250) {
+			System.out.println("          Left obstacle detected\n");
+			theFSM.raiseLeftBump();
+		} else if (isThereCollisionAtRight()|| frontRightDistanceSensor.getValue() < 250 || frontDistanceSensor.getValue() < 250) {
+			System.out.println("          Right obstacle detected\n");
+			theFSM.raiseRightBump();
+		} 
 	}
 	
 	public void stop() {
@@ -293,6 +325,8 @@ public class PolyCreateControler extends Supervisor {
 
 	public static void main(String[] args) {
 		PolyCreateControler controler = new PolyCreateControler();
+		
+
 
 		try {
 			controler.openGripper();

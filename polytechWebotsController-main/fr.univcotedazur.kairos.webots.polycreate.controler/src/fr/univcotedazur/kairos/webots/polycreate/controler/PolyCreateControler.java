@@ -192,12 +192,12 @@ public class PolyCreateControler extends Supervisor {
 
 
 	public void openGripper() {
-		gripMotors[0].setPosition(0.5);
+		gripMotors[0].setPosition(0.5);//gripper伸出机器人0.5,表示夹子开始工作 单位m
 		gripMotors[1].setPosition(0.5);
 	}
 
 	public void closeGripper() {
-		gripMotors[0].setPosition(-0.2);
+		gripMotors[0].setPosition(-0.2);//gripper收回机器人0.2,表示夹子开始工作
 		gripMotors[1].setPosition(-0.2);
 	}
 	
@@ -205,20 +205,20 @@ public class PolyCreateControler extends Supervisor {
 	 * give the obstacle distance from the gripper sensor. max distance (i.e., no obstacle detected) is 1500
 	 * @return
 	 */
-	public double getObjectDistanceToGripper() {
+	public double getObjectDistanceToGripper() { //距离架子的距离
 		return gripperSensor.getValue();
 	}
 
-	public boolean isThereCollisionAtLeft() {
+	public boolean isThereCollisionAtLeft() {//接触传感器只有0/1，1表示撞上,0表示没有撞上
 		return (leftBumper.getValue() != 0.0);
 	}
 
-	public boolean isThereCollisionAtRight() {
-		return (rightBumper.getValue() != 0.0);
+	public boolean isThereCollisionAtRight() {//该功能返回接收方队列中当前存在的数据包数
+		return (rightBumper.getValue() != 0.0);//功能删除头包。队列中的下一个数据包（如果有）成为新的头包
 	}
 
 	public void flushIRReceiver() {
-		while (receiver.getQueueLength() > 0)
+		while (receiver.getQueueLength() > 0)//接受序列存在数据包,即表明有虚拟墙
 			receiver.nextPacket();
 	}
 

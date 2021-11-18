@@ -56,7 +56,7 @@ public class PolyCreateControler extends Supervisor {
 	}
 
 
-	public Motor[] gripMotors = new Motor[2];
+	public Motor[] gripMotors = new Motor[2];//motor是马达api
 	public DistanceSensor gripperSensor = null;
 
 	public Motor leftMotor = null;//左马达
@@ -69,8 +69,9 @@ public class PolyCreateControler extends Supervisor {
 	public LED ledPlay = null;
 	public LED ledStep = null;
 
-	public TouchSensor leftBumper = null;//bumper保险杠，接触传感器
-	public TouchSensor rightBumper = null;
+	//返回布尔值是否碰撞
+	public TouchSensor leftBumper = null;//bumper保险杠，左接触传感器
+	public TouchSensor rightBumper = null;//右接触传感器
 
 	public DistanceSensor leftCliffSensor = null;//cliff悬崖，距离传感器有左/右/前左/前右方向
 	public DistanceSensor rightCliffSensor = null;
@@ -84,7 +85,7 @@ public class PolyCreateControler extends Supervisor {
 	public Camera frontCamera = null;//前置与后置摄像头
 	public Camera backCamera = null;
 
-	public Receiver receiver = null;
+	public Receiver receiver = null; //接受数据
 
 	public GPS gps = null;
 	
@@ -95,7 +96,11 @@ public class PolyCreateControler extends Supervisor {
 
 
 	public PolyCreateControler() {
+<<<<<<< Updated upstream
 		timestep = (int) Math.round(this.getBasicTimeStep());//round四舍五入正数，时间步骤
+=======
+		timestep = (int) Math.round(this.getBasicTimeStep());//round四舍五入，时间步骤
+>>>>>>> Stashed changes
 
 		theFSM = new RobotStateMachine(); 
 		TimerService timer = new TimerService();
@@ -128,17 +133,17 @@ public class PolyCreateControler extends Supervisor {
 
 		leftSensor = createPositionSensor("left wheel sensor");
 		rightSensor = createPositionSensor("right wheel sensor");
-		leftSensor.enable(timestep);
-		rightSensor.enable(timestep);
+		leftSensor.enable(timestep);//启动左距离传感器的测量
+		rightSensor.enable(timestep);//启动右距离传感器的测量
 
-		ledOn = createLED("led_on");
+		ledOn = createLED("led_on");//Led灯
 		ledPlay = createLED("led_play");
 		ledStep = createLED("led_step");
 
 		leftBumper = createTouchSensor("bumper_left");
 		rightBumper = createTouchSensor("bumper_right");
-		leftBumper.enable(timestep);
-		rightBumper.enable(timestep);
+		leftBumper.enable(timestep);//左接触传感器启动
+		rightBumper.enable(timestep);//右接触传感器启动
 
 		leftCliffSensor = createDistanceSensor("cliff_left");
 		rightCliffSensor = createDistanceSensor("cliff_right");
@@ -157,8 +162,8 @@ public class PolyCreateControler extends Supervisor {
 		frontRightDistanceSensor.enable(timestep);
 		
 		frontCamera = createCamera("frontCamera");
-		frontCamera.enable(timestep);
-		frontCamera.recognitionEnable(timestep);
+		frontCamera.enable(timestep);//开摄像头
+		frontCamera.recognitionEnable(timestep);//可识别
 
 		backCamera = createCamera("backCamera");
 		backCamera.enable(timestep);
@@ -284,13 +289,13 @@ public class PolyCreateControler extends Supervisor {
 	}
 
 	public double randdouble() {
-		return  random.nextDouble();
+		return  random.nextDouble();//生成一个随机的 double 值，数值介于 [0,1.0)
 	}
 
 	public void turn(double angle) {
 		stop();
-		double l_offset = leftSensor.getValue();
-		double r_offset = rightSensor.getValue();
+		double l_offset = leftSensor.getValue();//返回左传感器位置的测量值
+		double r_offset = rightSensor.getValue();//返回右传感器位置的测量值
 		step(timestep);
 		double neg = (angle < 0.0) ? -1.0 : 1.0;
 		leftMotor.setVelocity(neg * HALF_SPEED);

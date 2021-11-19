@@ -111,6 +111,7 @@ public class PolyCreateControler extends Supervisor {
 		theFSM.getRightTurn().subscribe(new myRightTurnObserver(this));
 		theFSM.getBackTurn().subscribe(new myGoBackwardObserver(this));
 		theFSM.getIsBump().subscribe(new myIsBumpObserver(this));
+
 		
 
 		
@@ -265,7 +266,6 @@ public class PolyCreateControler extends Supervisor {
 	public void isBump() {
 		if (isThereVirtualwall()) {
 			System.out.println("Virtual wall detected\n");
-//			controler.turn(Math.PI);
 			theFSM.raiseSenseFall();
 		} else if (isThereCollisionAtLeft() || frontLeftDistanceSensor.getValue() < 250) {
 			System.out.println("          Left obstacle detected\n");
@@ -312,6 +312,29 @@ public class PolyCreateControler extends Supervisor {
 		stop();
 		step(timestep);
 	}
+	
+	public void doStop() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public void coverArea() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public void doReset() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public void doStart() {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+
 
 	/**
 	 * The values are returned as a 3D-vector, therefore only the indices 0, 1, and 2 are valid for accessing the vector.
@@ -411,6 +434,19 @@ public class PolyCreateControler extends Supervisor {
 		this.delete();
 		super.finalize();
 	}
+
+
+
+	
+
+
+
+
+
+	
+
+
+
 	
 	
 

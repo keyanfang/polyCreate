@@ -25,7 +25,7 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 	
 	private ITimerService timerService;
 	
-	private final boolean[] timeEvents = new boolean[5];
+	private final boolean[] timeEvents = new boolean[6];
 	
 	private BlockingQueue<Runnable> inEventQueue = new LinkedBlockingQueue<Runnable>();
 	private boolean isExecuting;
@@ -112,12 +112,12 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		senseWall = false;
 		detectObject = false;
 		reachDestination = false;
-		dirty = false;
 		timeEvents[0] = false;
 		timeEvents[1] = false;
 		timeEvents[2] = false;
 		timeEvents[3] = false;
 		timeEvents[4] = false;
+		timeEvents[5] = false;
 	}
 	
 	private void microStep() {
@@ -177,7 +177,7 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 			clearInEvents();
 			
 			nextEvent();
-		} while ((((((((((((leftBump || rightBump) || senseFall) || senseWall) || detectObject) || reachDestination) || dirty) || timeEvents[0]) || timeEvents[1]) || timeEvents[2]) || timeEvents[3]) || timeEvents[4]));
+		} while ((((((((((((leftBump || rightBump) || senseFall) || senseWall) || detectObject) || reachDestination) || timeEvents[0]) || timeEvents[1]) || timeEvents[2]) || timeEvents[3]) || timeEvents[4]) || timeEvents[5]));
 		
 		isExecuting = false;
 	}
@@ -304,18 +304,6 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		}
 	}
 	
-	private boolean dirty;
-	
-	
-	public void raiseDirty() {
-		synchronized(RobotStateMachine.this) {
-			inEventQueue.add(() -> {
-				dirty = true;
-			});
-			runCycle();
-		}
-	}
-	
 	private boolean rightTurn;
 	
 	
@@ -428,36 +416,20 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		return releaseObjectObservable;
 	}
 	
-	private boolean doReset;
+	private boolean searchObject;
 	
 	
-	protected void raiseDoReset() {
+	protected void raiseSearchObject() {
 		synchronized(RobotStateMachine.this) {
-			doReset = true;
-			doResetObservable.next(null);
+			searchObject = true;
+			searchObjectObservable.next(null);
 		}
 	}
 	
-	private Observable<Void> doResetObservable = new Observable<Void>();
+	private Observable<Void> searchObjectObservable = new Observable<Void>();
 	
-	public Observable<Void> getDoReset() {
-		return doResetObservable;
-	}
-	
-	private boolean doStart;
-	
-	
-	protected void raiseDoStart() {
-		synchronized(RobotStateMachine.this) {
-			doStart = true;
-			doStartObservable.next(null);
-		}
-	}
-	
-	private Observable<Void> doStartObservable = new Observable<Void>();
-	
-	public Observable<Void> getDoStart() {
-		return doStartObservable;
+	public Observable<Void> getSearchObject() {
+		return searchObjectObservable;
 	}
 	
 	/* Entry action for state 'init'. */
@@ -489,6 +461,11 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		timerService.setTimer(this, 4, 500, false);
 	}
 	
+	/* Entry action for state 'sweeping '. */
+	private void entryAction_main_region_started_r2_sweeping_() {
+		timerService.setTimer(this, 5, 100, true);
+	}
+	
 	/* Exit action for state 'init'. */
 	private void exitAction_main_region_init() {
 		timerService.unsetTimer(this, 0);
@@ -512,6 +489,11 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 	/* Exit action for state 'turning back'. */
 	private void exitAction_main_region_started_r1_turning_back() {
 		timerService.unsetTimer(this, 4);
+	}
+	
+	/* Exit action for state 'sweeping '. */
+	private void exitAction_main_region_started_r2_sweeping_() {
+		timerService.unsetTimer(this, 5);
 	}
 	
 	/* 'default' enter sequence for state init */
@@ -557,6 +539,7 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 	
 	/* 'default' enter sequence for state sweeping  */
 	private void enterSequence_main_region_started_r2_sweeping__default() {
+		entryAction_main_region_started_r2_sweeping_();
 		stateVector[1] = State.MAIN_REGION_STARTED_R2_SWEEPING_;
 		stateConfVectorPosition = 1;
 	}
@@ -626,6 +609,8 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 	private void exitSequence_main_region_started_r2_sweeping_() {
 		stateVector[1] = State.$NULLSTATE$;
 		stateConfVectorPosition = 1;
+		
+		exitAction_main_region_started_r2_sweeping_();
 	}
 	
 	/* Default exit sequence for state objectInHand */
@@ -814,6 +799,16 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 				main_region_started_react(0);
 				
 				transitioned_after = 1;
+			} else {
+				if (timeEvents[5]) {
+					exitSequence_main_region_started_r2_sweeping_();
+					raiseSearchObject();
+					
+					enterSequence_main_region_started_r2_sweeping__default();
+					main_region_started_react(0);
+					
+					transitioned_after = 1;
+				}
 			}
 		}
 		/* If no transition was taken then execute local reactions */

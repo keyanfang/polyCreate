@@ -313,26 +313,22 @@ public class PolyCreateControler extends Supervisor {
 		step(timestep);
 	}
 	
-	public void doStop() {
+	public void catchObject() {
 		// TODO Auto-generated method stub
 		
 	}
 	
-	public void coverArea() {
+	public void releaseObject() {
 		// TODO Auto-generated method stub
 		
 	}
 	
-	public void doReset() {
+	public void searchObject() {
 		// TODO Auto-generated method stub
 		
 	}
 	
-	public void doStart() {
-		// TODO Auto-generated method stub
-		
-	}
-
+	
 
 
 

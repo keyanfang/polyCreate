@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmlns:sgraph="http://www.yakindu.org/sct/sgraph/2.0.0">
-  <sgraph:Statechart xmi:id="_Pa24wDh_EeyUwYiOwLcp9Q" specification="// Use the event driven execution model.&#xA;// Switch to cycle based behavior&#xA;// by specifying '@CycleBased(200)'.&#xA;@EventDriven&#xD;&#xA;&#xD;&#xA;// Use @SuperSteps(yes) to enable&#xA;// super step semantics.&#xA;@SuperSteps(no)&#xD;&#xA;&#xD;&#xA;interface:&#xD;&#xA;&#x9;// Define events and variables here. &#xA;&#x9;// Use CTRL + Space for content assist.&#xA;&#x9;in event leftBump&#xA;&#x9;in event rightBump&#xA;&#x9;in event senseFall&#xA;&#x9;in event senseWall&#xA;&#x9;in event detectObject&#xA;&#x9;in event reachDestination&#xA;&#x9;in event dirty&#xA;&#x9;&#xA;&#x9;&#xA;&#x9;out event rightTurn&#xA;&#x9;out event leftTurn&#xA;&#x9;out event backTurn&#xA;&#x9;out event isBump&#xA;&#x9;out event doForward&#xA;&#x9;out event catchObject&#xA;&#x9;out event releaseObject&#xA;&#x9;out event doReset&#xA;&#x9;out event doStart" name="robot">
+  <sgraph:Statechart xmi:id="_Pa24wDh_EeyUwYiOwLcp9Q" specification="// Use the event driven execution model.&#xA;// Switch to cycle based behavior&#xA;// by specifying '@CycleBased(200)'.&#xA;@EventDriven&#xD;&#xA;&#xD;&#xA;// Use @SuperSteps(yes) to enable&#xA;// super step semantics.&#xA;@SuperSteps(no)&#xD;&#xA;&#xD;&#xA;interface:&#xD;&#xA;&#x9;// Define events and variables here. &#xA;&#x9;// Use CTRL + Space for content assist.&#xA;&#x9;in event leftBump&#xA;&#x9;in event rightBump&#xA;&#x9;in event senseFall&#xA;&#x9;in event senseWall&#xA;&#x9;in event detectObject&#xA;&#x9;in event reachDestination&#xA;&#xA;&#x9;&#xA;&#x9;&#xA;&#x9;out event rightTurn&#xA;&#x9;out event leftTurn&#xA;&#x9;out event backTurn&#xA;&#x9;out event isBump&#xA;&#x9;out event doForward&#xA;&#x9;out event catchObject&#xA;&#x9;out event releaseObject&#xA;&#x9;out event searchObject&#xA;" name="robot">
     <regions xmi:id="_Pa7KMzh_EeyUwYiOwLcp9Q" name="main region">
       <vertices xsi:type="sgraph:Entry" xmi:id="_Pa7KNDh_EeyUwYiOwLcp9Q">
         <outgoingTransitions xmi:id="_Pa7KNTh_EeyUwYiOwLcp9Q" target="_Pa7xQDh_EeyUwYiOwLcp9Q"/>
@@ -33,8 +33,9 @@
           <vertices xsi:type="sgraph:Entry" xmi:id="_-gUWkEkOEeyzO8zfQxReZA">
             <outgoingTransitions xmi:id="_oOhnIEkcEeyYZfvskzINXQ" specification="" target="_nJVgsEkcEeyYZfvskzINXQ"/>
           </vertices>
-          <vertices xsi:type="sgraph:State" xmi:id="_nJVgsEkcEeyYZfvskzINXQ" name="sweeping " incomingTransitions="_oOhnIEkcEeyYZfvskzINXQ _9exRoEkcEeyYZfvskzINXQ">
+          <vertices xsi:type="sgraph:State" xmi:id="_nJVgsEkcEeyYZfvskzINXQ" specification="" name="sweeping " incomingTransitions="_oOhnIEkcEeyYZfvskzINXQ _9exRoEkcEeyYZfvskzINXQ _ECaLgEkiEeyYZfvskzINXQ">
             <outgoingTransitions xmi:id="_sbvOcEkcEeyYZfvskzINXQ" specification="detectObject/raise catchObject" target="_q32Z0EkcEeyYZfvskzINXQ"/>
+            <outgoingTransitions xmi:id="_ECaLgEkiEeyYZfvskzINXQ" specification="every 100ms/raise searchObject" target="_nJVgsEkcEeyYZfvskzINXQ"/>
           </vertices>
           <vertices xsi:type="sgraph:State" xmi:id="_q32Z0EkcEeyYZfvskzINXQ" specification="" name="objectInHand" incomingTransitions="_sbvOcEkcEeyYZfvskzINXQ">
             <outgoingTransitions xmi:id="_9exRoEkcEeyYZfvskzINXQ" specification="reachDestination/raise releaseObject" target="_nJVgsEkcEeyYZfvskzINXQ"/>
@@ -397,6 +398,17 @@
       <bendpoints xsi:type="notation:RelativeBendpoints" xmi:id="_9ex4skkcEeyYZfvskzINXQ" points="[0, 0, 436, 0]$[-425, 2, 11, 2]"/>
       <sourceAnchor xsi:type="notation:IdentityAnchor" xmi:id="_9ezG0EkcEeyYZfvskzINXQ" id="(0.0,0.5849056603773585)"/>
       <targetAnchor xsi:type="notation:IdentityAnchor" xmi:id="_9ezG0UkcEeyYZfvskzINXQ" id="(0.9276315789473685,0.6047904191616766)"/>
+    </edges>
+    <edges xmi:id="_ECaykEkiEeyYZfvskzINXQ" type="Transition" element="_ECaLgEkiEeyYZfvskzINXQ" source="_nJWHwEkcEeyYZfvskzINXQ" target="_nJWHwEkcEeyYZfvskzINXQ">
+      <children xsi:type="notation:DecorationNode" xmi:id="_ECbZoUkiEeyYZfvskzINXQ" type="TransitionExpression">
+        <styles xsi:type="notation:ShapeStyle" xmi:id="_ECbZokkiEeyYZfvskzINXQ"/>
+        <layoutConstraint xsi:type="notation:Location" xmi:id="_ECbZo0kiEeyYZfvskzINXQ" x="28" y="46"/>
+      </children>
+      <styles xsi:type="notation:ConnectorStyle" xmi:id="_ECaykUkiEeyYZfvskzINXQ" routing="Rectilinear" lineColor="4210752"/>
+      <styles xsi:type="notation:FontStyle" xmi:id="_ECbZoEkiEeyYZfvskzINXQ" fontName="Verdana"/>
+      <bendpoints xsi:type="notation:RelativeBendpoints" xmi:id="_ECaykkkiEeyYZfvskzINXQ" points="[-40, 133, -3, 7]$[-34, 133, 3, 7]"/>
+      <sourceAnchor xsi:type="notation:IdentityAnchor" xmi:id="_ECcnwEkiEeyYZfvskzINXQ" id="(1.0,0.20359281437125748)"/>
+      <targetAnchor xsi:type="notation:IdentityAnchor" xmi:id="_ECcnwUkiEeyYZfvskzINXQ" id="(0.756578947368421,0.9580838323353293)"/>
     </edges>
   </notation:Diagram>
 </xmi:XMI>

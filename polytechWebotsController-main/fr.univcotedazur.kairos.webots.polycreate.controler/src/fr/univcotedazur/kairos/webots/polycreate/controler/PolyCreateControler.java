@@ -33,6 +33,9 @@ import com.yakindu.core.TimerService;
 
 import fr.unice.polytech.si4.fsm.robot.RobotStateMachine;
 
+import javax.swing.*;
+import java.awt.event.*;
+
 public class PolyCreateControler extends Supervisor {
 
 	static int MAX_SPEED = 16;
@@ -44,6 +47,14 @@ public class PolyCreateControler extends Supervisor {
 	static double AXLE_LENGTH = 0.271756;//轴长
 	static double ENCODER_RESOLUTION = 507.9188;//
 	public RobotStateMachine theFSM;
+	
+	
+	//控制界面
+	
+	protected JFrame jf;
+	protected JPanel jp;
+	protected JButton startWeeping,stopWeeping,startWriting,stopWriting,startMoving,stopMoving;
+	
 	
 
 	/**
@@ -186,6 +197,62 @@ public class PolyCreateControler extends Supervisor {
 				ctrl.delete();
 			}
 		});
+		
+		//设置界面
+		
+		jf=new JFrame();
+		
+		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		jf.setResizable(true);
+		jf.setTitle("RobotManagement");
+		
+		jp =new JPanel();
+		
+		startMoving =new JButton("startMoving");
+		startMoving.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				theFSM.raiseMoveButton();
+			}
+		});
+		
+		
+		
+		stopMoving =new JButton("stopMoving");
+		startMoving.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				theFSM.raiseStopMoving();
+			}
+		});
+		
+		startWriting =new JButton("startWriting");
+		startWriting.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				theFSM.raiseWriteButton();
+			}
+		});
+		
+		
+		
+		stopWriting =new JButton("stopWriting");
+		stopWriting.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				theFSM.raiseStopWriting();
+			}
+		});
+		
+		jp.add(startMoving);
+		jp.add(stopMoving);
+		jp.add(startWriting);
+		jp.add(stopWriting);
+		
+		
+		jf.setContentPane(jp);
+		jf.setVisible(true);
+        jf.setLocationRelativeTo(null);
 		
 		theFSM.enter();
 	}

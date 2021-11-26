@@ -12,18 +12,22 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 	public enum State {
 		MAIN_REGION_INIT,
 		MAIN_REGION_STARTED,
-		MAIN_REGION_STARTED_R1_FORWARDING,
 		MAIN_REGION_STARTED_R1_TURNING_RIGHT,
+		MAIN_REGION_STARTED_R1_FORWARDING,
 		MAIN_REGION_STARTED_R1_TURNING_LEFT,
 		MAIN_REGION_STARTED_R1_TURNING_BACK,
+		MAIN_REGION_STARTED_A_SWEEPING_,
+		MAIN_REGION_STARTED_A_OBJECTINHAND,
+		MAIN_REGION_STARTED_A_WRITING,
+		MAIN_REGION_STARTED_A_OBJECTMOVING,
 		$NULLSTATE$
 	};
 	
-	private final State[] stateVector = new State[1];
+	private final State[] stateVector = new State[2];
 	
 	private ITimerService timerService;
 	
-	private final boolean[] timeEvents = new boolean[5];
+	private final boolean[] timeEvents = new boolean[6];
 	
 	private BlockingQueue<Runnable> inEventQueue = new LinkedBlockingQueue<Runnable>();
 	private boolean isExecuting;
@@ -39,8 +43,21 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 			this.isExecuting = value;
 		}
 	}
+	private long stateConfVectorPosition;
+	
+	protected long getStateConfVectorPosition() {
+		synchronized(RobotStateMachine.this) {
+			return stateConfVectorPosition;
+		}
+	}
+	
+	protected void setStateConfVectorPosition(long value) {
+		synchronized(RobotStateMachine.this) {
+			this.stateConfVectorPosition = value;
+		}
+	}
 	public RobotStateMachine() {
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 2; i++) {
 			stateVector[i] = State.$NULLSTATE$;
 		}
 		
@@ -79,7 +96,7 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 	 * @see IStatemachine#isActive()
 	 */
 	public synchronized boolean isActive() {
-		return stateVector[0] != State.$NULLSTATE$;
+		return stateVector[0] != State.$NULLSTATE$||stateVector[1] != State.$NULLSTATE$;
 	}
 	
 	/** 
@@ -95,32 +112,63 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		rightBump = false;
 		senseFall = false;
 		senseWall = false;
+		detectObject = false;
+		reachDestination = false;
+		writeButton = false;
+		stopWriting = false;
+		moveButton = false;
+		stopMoving = false;
+		doStart = false;
 		timeEvents[0] = false;
 		timeEvents[1] = false;
 		timeEvents[2] = false;
 		timeEvents[3] = false;
 		timeEvents[4] = false;
+		timeEvents[5] = false;
 	}
 	
 	private void microStep() {
+		long transitioned = -1;
+		
+		stateConfVectorPosition = 0;
+		
 		switch (stateVector[0]) {
 		case MAIN_REGION_INIT:
-			main_region_init_react(-1);
-			break;
-		case MAIN_REGION_STARTED_R1_FORWARDING:
-			main_region_started_r1_forwarding_react(-1);
+			transitioned = main_region_init_react(transitioned);
 			break;
 		case MAIN_REGION_STARTED_R1_TURNING_RIGHT:
-			main_region_started_r1_turning_right_react(-1);
+			transitioned = main_region_started_r1_turning_right_react(transitioned);
+			break;
+		case MAIN_REGION_STARTED_R1_FORWARDING:
+			transitioned = main_region_started_r1_forwarding_react(transitioned);
 			break;
 		case MAIN_REGION_STARTED_R1_TURNING_LEFT:
-			main_region_started_r1_turning_left_react(-1);
+			transitioned = main_region_started_r1_turning_left_react(transitioned);
 			break;
 		case MAIN_REGION_STARTED_R1_TURNING_BACK:
-			main_region_started_r1_turning_back_react(-1);
+			transitioned = main_region_started_r1_turning_back_react(transitioned);
 			break;
 		default:
 			break;
+		}
+		
+		if (getStateConfVectorPosition()<1) {
+			switch (stateVector[1]) {
+			case MAIN_REGION_STARTED_A_SWEEPING_:
+				transitioned = main_region_started_a_sweeping__react(transitioned);
+				break;
+			case MAIN_REGION_STARTED_A_OBJECTINHAND:
+				transitioned = main_region_started_a_objectInHand_react(transitioned);
+				break;
+			case MAIN_REGION_STARTED_A_WRITING:
+				transitioned = main_region_started_a_writing_react(transitioned);
+				break;
+			case MAIN_REGION_STARTED_A_OBJECTMOVING:
+				transitioned = main_region_started_a_objectMoving_react(transitioned);
+				break;
+			default:
+				break;
+			}
 		}
 	}
 	
@@ -142,7 +190,7 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 			clearInEvents();
 			
 			nextEvent();
-		} while (((((((((leftBump || rightBump) || senseFall) || senseWall) || timeEvents[0]) || timeEvents[1]) || timeEvents[2]) || timeEvents[3]) || timeEvents[4]));
+		} while (((((((((((((((((leftBump || rightBump) || senseFall) || senseWall) || detectObject) || reachDestination) || writeButton) || stopWriting) || moveButton) || stopMoving) || doStart) || timeEvents[0]) || timeEvents[1]) || timeEvents[2]) || timeEvents[3]) || timeEvents[4]) || timeEvents[5]));
 		
 		isExecuting = false;
 	}
@@ -163,15 +211,23 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 			return stateVector[0] == State.MAIN_REGION_INIT;
 		case MAIN_REGION_STARTED:
 			return stateVector[0].ordinal() >= State.
-					MAIN_REGION_STARTED.ordinal()&& stateVector[0].ordinal() <= State.MAIN_REGION_STARTED_R1_TURNING_BACK.ordinal();
-		case MAIN_REGION_STARTED_R1_FORWARDING:
-			return stateVector[0] == State.MAIN_REGION_STARTED_R1_FORWARDING;
+					MAIN_REGION_STARTED.ordinal()&& stateVector[0].ordinal() <= State.MAIN_REGION_STARTED_A_OBJECTMOVING.ordinal();
 		case MAIN_REGION_STARTED_R1_TURNING_RIGHT:
 			return stateVector[0] == State.MAIN_REGION_STARTED_R1_TURNING_RIGHT;
+		case MAIN_REGION_STARTED_R1_FORWARDING:
+			return stateVector[0] == State.MAIN_REGION_STARTED_R1_FORWARDING;
 		case MAIN_REGION_STARTED_R1_TURNING_LEFT:
 			return stateVector[0] == State.MAIN_REGION_STARTED_R1_TURNING_LEFT;
 		case MAIN_REGION_STARTED_R1_TURNING_BACK:
 			return stateVector[0] == State.MAIN_REGION_STARTED_R1_TURNING_BACK;
+		case MAIN_REGION_STARTED_A_SWEEPING_:
+			return stateVector[1] == State.MAIN_REGION_STARTED_A_SWEEPING_;
+		case MAIN_REGION_STARTED_A_OBJECTINHAND:
+			return stateVector[1] == State.MAIN_REGION_STARTED_A_OBJECTINHAND;
+		case MAIN_REGION_STARTED_A_WRITING:
+			return stateVector[1] == State.MAIN_REGION_STARTED_A_WRITING;
+		case MAIN_REGION_STARTED_A_OBJECTMOVING:
+			return stateVector[1] == State.MAIN_REGION_STARTED_A_OBJECTMOVING;
 		default:
 			return false;
 		}
@@ -236,6 +292,90 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		synchronized(RobotStateMachine.this) {
 			inEventQueue.add(() -> {
 				senseWall = true;
+			});
+			runCycle();
+		}
+	}
+	
+	private boolean detectObject;
+	
+	
+	public void raiseDetectObject() {
+		synchronized(RobotStateMachine.this) {
+			inEventQueue.add(() -> {
+				detectObject = true;
+			});
+			runCycle();
+		}
+	}
+	
+	private boolean reachDestination;
+	
+	
+	public void raiseReachDestination() {
+		synchronized(RobotStateMachine.this) {
+			inEventQueue.add(() -> {
+				reachDestination = true;
+			});
+			runCycle();
+		}
+	}
+	
+	private boolean writeButton;
+	
+	
+	public void raiseWriteButton() {
+		synchronized(RobotStateMachine.this) {
+			inEventQueue.add(() -> {
+				writeButton = true;
+			});
+			runCycle();
+		}
+	}
+	
+	private boolean stopWriting;
+	
+	
+	public void raiseStopWriting() {
+		synchronized(RobotStateMachine.this) {
+			inEventQueue.add(() -> {
+				stopWriting = true;
+			});
+			runCycle();
+		}
+	}
+	
+	private boolean moveButton;
+	
+	
+	public void raiseMoveButton() {
+		synchronized(RobotStateMachine.this) {
+			inEventQueue.add(() -> {
+				moveButton = true;
+			});
+			runCycle();
+		}
+	}
+	
+	private boolean stopMoving;
+	
+	
+	public void raiseStopMoving() {
+		synchronized(RobotStateMachine.this) {
+			inEventQueue.add(() -> {
+				stopMoving = true;
+			});
+			runCycle();
+		}
+	}
+	
+	private boolean doStart;
+	
+	
+	public void raiseDoStart() {
+		synchronized(RobotStateMachine.this) {
+			inEventQueue.add(() -> {
+				doStart = true;
 			});
 			runCycle();
 		}
@@ -321,21 +461,119 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		return doForwardObservable;
 	}
 	
+	private boolean catchObject;
+	
+	
+	protected void raiseCatchObject() {
+		synchronized(RobotStateMachine.this) {
+			catchObject = true;
+			catchObjectObservable.next(null);
+		}
+	}
+	
+	private Observable<Void> catchObjectObservable = new Observable<Void>();
+	
+	public Observable<Void> getCatchObject() {
+		return catchObjectObservable;
+	}
+	
+	private boolean releaseObject;
+	
+	
+	protected void raiseReleaseObject() {
+		synchronized(RobotStateMachine.this) {
+			releaseObject = true;
+			releaseObjectObservable.next(null);
+		}
+	}
+	
+	private Observable<Void> releaseObjectObservable = new Observable<Void>();
+	
+	public Observable<Void> getReleaseObject() {
+		return releaseObjectObservable;
+	}
+	
+	private boolean searchObject;
+	
+	
+	protected void raiseSearchObject() {
+		synchronized(RobotStateMachine.this) {
+			searchObject = true;
+			searchObjectObservable.next(null);
+		}
+	}
+	
+	private Observable<Void> searchObjectObservable = new Observable<Void>();
+	
+	public Observable<Void> getSearchObject() {
+		return searchObjectObservable;
+	}
+	
+	private boolean doInit;
+	
+	
+	protected void raiseDoInit() {
+		synchronized(RobotStateMachine.this) {
+			doInit = true;
+			doInitObservable.next(null);
+		}
+	}
+	
+	private Observable<Void> doInitObservable = new Observable<Void>();
+	
+	public Observable<Void> getDoInit() {
+		return doInitObservable;
+	}
+	
+	private boolean doWriting;
+	
+	
+	protected void raiseDoWriting() {
+		synchronized(RobotStateMachine.this) {
+			doWriting = true;
+			doWritingObservable.next(null);
+		}
+	}
+	
+	private Observable<Void> doWritingObservable = new Observable<Void>();
+	
+	public Observable<Void> getDoWriting() {
+		return doWritingObservable;
+	}
+	
+	private boolean doSweeping;
+	
+	
+	protected void raiseDoSweeping() {
+		synchronized(RobotStateMachine.this) {
+			doSweeping = true;
+			doSweepingObservable.next(null);
+		}
+	}
+	
+	private Observable<Void> doSweepingObservable = new Observable<Void>();
+	
+	public Observable<Void> getDoSweeping() {
+		return doSweepingObservable;
+	}
+	
 	/* Entry action for state 'init'. */
 	private void entryAction_main_region_init() {
 		timerService.setTimer(this, 0, (1 * 1000), false);
-	}
-	
-	/* Entry action for state 'forwarding'. */
-	private void entryAction_main_region_started_r1_forwarding() {
-		timerService.setTimer(this, 1, 100, true);
 		
-		raiseDoForward();
+		raiseDoInit();
 	}
 	
 	/* Entry action for state 'turning right'. */
 	private void entryAction_main_region_started_r1_turning_right() {
-		timerService.setTimer(this, 2, 500, false);
+		timerService.setTimer(this, 1, 500, false);
+	}
+	
+	/* Entry action for state 'forwarding'. */
+	private void entryAction_main_region_started_r1_forwarding() {
+		timerService.setTimer(this, 2, 100, true);
+		
+		raiseDoForward();
 	}
 	
 	/* Entry action for state 'turning left'. */
@@ -350,18 +588,28 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		timerService.setTimer(this, 4, 500, false);
 	}
 	
+	/* Entry action for state 'sweeping '. */
+	private void entryAction_main_region_started_a_sweeping_() {
+		raiseDoSweeping();
+	}
+	
+	/* Entry action for state 'objectMoving'. */
+	private void entryAction_main_region_started_a_objectMoving() {
+		timerService.setTimer(this, 5, 100, true);
+	}
+	
 	/* Exit action for state 'init'. */
 	private void exitAction_main_region_init() {
 		timerService.unsetTimer(this, 0);
 	}
 	
-	/* Exit action for state 'forwarding'. */
-	private void exitAction_main_region_started_r1_forwarding() {
+	/* Exit action for state 'turning right'. */
+	private void exitAction_main_region_started_r1_turning_right() {
 		timerService.unsetTimer(this, 1);
 	}
 	
-	/* Exit action for state 'turning right'. */
-	private void exitAction_main_region_started_r1_turning_right() {
+	/* Exit action for state 'forwarding'. */
+	private void exitAction_main_region_started_r1_forwarding() {
 		timerService.unsetTimer(this, 2);
 	}
 	
@@ -375,39 +623,76 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		timerService.unsetTimer(this, 4);
 	}
 	
+	/* Exit action for state 'objectMoving'. */
+	private void exitAction_main_region_started_a_objectMoving() {
+		timerService.unsetTimer(this, 5);
+	}
+	
 	/* 'default' enter sequence for state init */
 	private void enterSequence_main_region_init_default() {
 		entryAction_main_region_init();
 		stateVector[0] = State.MAIN_REGION_INIT;
+		stateConfVectorPosition = 0;
 	}
 	
 	/* 'default' enter sequence for state started */
 	private void enterSequence_main_region_started_default() {
 		enterSequence_main_region_started_r1_default();
-	}
-	
-	/* 'default' enter sequence for state forwarding */
-	private void enterSequence_main_region_started_r1_forwarding_default() {
-		entryAction_main_region_started_r1_forwarding();
-		stateVector[0] = State.MAIN_REGION_STARTED_R1_FORWARDING;
+		enterSequence_main_region_started_a_default();
 	}
 	
 	/* 'default' enter sequence for state turning right */
 	private void enterSequence_main_region_started_r1_turning_right_default() {
 		entryAction_main_region_started_r1_turning_right();
 		stateVector[0] = State.MAIN_REGION_STARTED_R1_TURNING_RIGHT;
+		stateConfVectorPosition = 0;
+	}
+	
+	/* 'default' enter sequence for state forwarding */
+	private void enterSequence_main_region_started_r1_forwarding_default() {
+		entryAction_main_region_started_r1_forwarding();
+		stateVector[0] = State.MAIN_REGION_STARTED_R1_FORWARDING;
+		stateConfVectorPosition = 0;
 	}
 	
 	/* 'default' enter sequence for state turning left */
 	private void enterSequence_main_region_started_r1_turning_left_default() {
 		entryAction_main_region_started_r1_turning_left();
 		stateVector[0] = State.MAIN_REGION_STARTED_R1_TURNING_LEFT;
+		stateConfVectorPosition = 0;
 	}
 	
 	/* 'default' enter sequence for state turning back */
 	private void enterSequence_main_region_started_r1_turning_back_default() {
 		entryAction_main_region_started_r1_turning_back();
 		stateVector[0] = State.MAIN_REGION_STARTED_R1_TURNING_BACK;
+		stateConfVectorPosition = 0;
+	}
+	
+	/* 'default' enter sequence for state sweeping  */
+	private void enterSequence_main_region_started_a_sweeping__default() {
+		entryAction_main_region_started_a_sweeping_();
+		stateVector[1] = State.MAIN_REGION_STARTED_A_SWEEPING_;
+		stateConfVectorPosition = 1;
+	}
+	
+	/* 'default' enter sequence for state objectInHand */
+	private void enterSequence_main_region_started_a_objectInHand_default() {
+		stateVector[1] = State.MAIN_REGION_STARTED_A_OBJECTINHAND;
+		stateConfVectorPosition = 1;
+	}
+	
+	/* 'default' enter sequence for state writing */
+	private void enterSequence_main_region_started_a_writing_default() {
+		stateVector[1] = State.MAIN_REGION_STARTED_A_WRITING;
+		stateConfVectorPosition = 1;
+	}
+	
+	/* 'default' enter sequence for state objectMoving */
+	private void enterSequence_main_region_started_a_objectMoving_default() {
+		entryAction_main_region_started_a_objectMoving();
+		stateVector[1] = State.MAIN_REGION_STARTED_A_OBJECTMOVING;
+		stateConfVectorPosition = 1;
 	}
 	
 	/* 'default' enter sequence for region main region */
@@ -420,30 +705,39 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		react_main_region_started_r1__entry_Default();
 	}
 	
+	/* 'default' enter sequence for region a */
+	private void enterSequence_main_region_started_a_default() {
+		react_main_region_started_a__entry_Default();
+	}
+	
 	/* Default exit sequence for state init */
 	private void exitSequence_main_region_init() {
 		stateVector[0] = State.$NULLSTATE$;
+		stateConfVectorPosition = 0;
 		
 		exitAction_main_region_init();
-	}
-	
-	/* Default exit sequence for state forwarding */
-	private void exitSequence_main_region_started_r1_forwarding() {
-		stateVector[0] = State.$NULLSTATE$;
-		
-		exitAction_main_region_started_r1_forwarding();
 	}
 	
 	/* Default exit sequence for state turning right */
 	private void exitSequence_main_region_started_r1_turning_right() {
 		stateVector[0] = State.$NULLSTATE$;
+		stateConfVectorPosition = 0;
 		
 		exitAction_main_region_started_r1_turning_right();
+	}
+	
+	/* Default exit sequence for state forwarding */
+	private void exitSequence_main_region_started_r1_forwarding() {
+		stateVector[0] = State.$NULLSTATE$;
+		stateConfVectorPosition = 0;
+		
+		exitAction_main_region_started_r1_forwarding();
 	}
 	
 	/* Default exit sequence for state turning left */
 	private void exitSequence_main_region_started_r1_turning_left() {
 		stateVector[0] = State.$NULLSTATE$;
+		stateConfVectorPosition = 0;
 		
 		exitAction_main_region_started_r1_turning_left();
 	}
@@ -451,8 +745,35 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 	/* Default exit sequence for state turning back */
 	private void exitSequence_main_region_started_r1_turning_back() {
 		stateVector[0] = State.$NULLSTATE$;
+		stateConfVectorPosition = 0;
 		
 		exitAction_main_region_started_r1_turning_back();
+	}
+	
+	/* Default exit sequence for state sweeping  */
+	private void exitSequence_main_region_started_a_sweeping_() {
+		stateVector[1] = State.$NULLSTATE$;
+		stateConfVectorPosition = 1;
+	}
+	
+	/* Default exit sequence for state objectInHand */
+	private void exitSequence_main_region_started_a_objectInHand() {
+		stateVector[1] = State.$NULLSTATE$;
+		stateConfVectorPosition = 1;
+	}
+	
+	/* Default exit sequence for state writing */
+	private void exitSequence_main_region_started_a_writing() {
+		stateVector[1] = State.$NULLSTATE$;
+		stateConfVectorPosition = 1;
+	}
+	
+	/* Default exit sequence for state objectMoving */
+	private void exitSequence_main_region_started_a_objectMoving() {
+		stateVector[1] = State.$NULLSTATE$;
+		stateConfVectorPosition = 1;
+		
+		exitAction_main_region_started_a_objectMoving();
 	}
 	
 	/* Default exit sequence for region main region */
@@ -461,17 +782,34 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		case MAIN_REGION_INIT:
 			exitSequence_main_region_init();
 			break;
-		case MAIN_REGION_STARTED_R1_FORWARDING:
-			exitSequence_main_region_started_r1_forwarding();
-			break;
 		case MAIN_REGION_STARTED_R1_TURNING_RIGHT:
 			exitSequence_main_region_started_r1_turning_right();
+			break;
+		case MAIN_REGION_STARTED_R1_FORWARDING:
+			exitSequence_main_region_started_r1_forwarding();
 			break;
 		case MAIN_REGION_STARTED_R1_TURNING_LEFT:
 			exitSequence_main_region_started_r1_turning_left();
 			break;
 		case MAIN_REGION_STARTED_R1_TURNING_BACK:
 			exitSequence_main_region_started_r1_turning_back();
+			break;
+		default:
+			break;
+		}
+		
+		switch (stateVector[1]) {
+		case MAIN_REGION_STARTED_A_SWEEPING_:
+			exitSequence_main_region_started_a_sweeping_();
+			break;
+		case MAIN_REGION_STARTED_A_OBJECTINHAND:
+			exitSequence_main_region_started_a_objectInHand();
+			break;
+		case MAIN_REGION_STARTED_A_WRITING:
+			exitSequence_main_region_started_a_writing();
+			break;
+		case MAIN_REGION_STARTED_A_OBJECTMOVING:
+			exitSequence_main_region_started_a_objectMoving();
 			break;
 		default:
 			break;
@@ -486,6 +824,11 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 	/* Default react sequence for initial entry  */
 	private void react_main_region_started_r1__entry_Default() {
 		enterSequence_main_region_started_r1_forwarding_default();
+	}
+	
+	/* Default react sequence for initial entry  */
+	private void react_main_region_started_a__entry_Default() {
+		enterSequence_main_region_started_a_sweeping__default();
 	}
 	
 	private long react(long transitioned_before) {
@@ -523,6 +866,19 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		return transitioned_after;
 	}
 	
+	private long main_region_started_r1_turning_right_react(long transitioned_before) {
+		long transitioned_after = transitioned_before;
+		
+		if (transitioned_after<0) {
+			if (timeEvents[1]) {
+				exitSequence_main_region_started_r1_turning_right();
+				enterSequence_main_region_started_r1_forwarding_default();
+				transitioned_after = 0;
+			}
+		}
+		return transitioned_after;
+	}
+	
 	private long main_region_started_r1_forwarding_react(long transitioned_before) {
 		long transitioned_after = transitioned_before;
 		
@@ -532,8 +888,6 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 				raiseRightTurn();
 				
 				enterSequence_main_region_started_r1_turning_right_default();
-				main_region_started_react(0);
-				
 				transitioned_after = 0;
 			} else {
 				if (rightBump) {
@@ -541,8 +895,6 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 					raiseLeftTurn();
 					
 					enterSequence_main_region_started_r1_turning_left_default();
-					main_region_started_react(0);
-					
 					transitioned_after = 0;
 				} else {
 					if (senseFall) {
@@ -550,8 +902,6 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 						raiseBackTurn();
 						
 						enterSequence_main_region_started_r1_turning_back_default();
-						main_region_started_react(0);
-						
 						transitioned_after = 0;
 					} else {
 						if (senseWall) {
@@ -559,8 +909,6 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 							raiseBackTurn();
 							
 							enterSequence_main_region_started_r1_turning_back_default();
-							main_region_started_react(0);
-							
 							transitioned_after = 0;
 						}
 					}
@@ -569,29 +917,9 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 		}
 		/* If no transition was taken then execute local reactions */
 		if (transitioned_after==transitioned_before) {
-			if (timeEvents[1]) {
+			if (timeEvents[2]) {
 				raiseIsBump();
 			}
-			transitioned_after = main_region_started_react(transitioned_before);
-		}
-		return transitioned_after;
-	}
-	
-	private long main_region_started_r1_turning_right_react(long transitioned_before) {
-		long transitioned_after = transitioned_before;
-		
-		if (transitioned_after<0) {
-			if (timeEvents[2]) {
-				exitSequence_main_region_started_r1_turning_right();
-				enterSequence_main_region_started_r1_forwarding_default();
-				main_region_started_react(0);
-				
-				transitioned_after = 0;
-			}
-		}
-		/* If no transition was taken then execute local reactions */
-		if (transitioned_after==transitioned_before) {
-			transitioned_after = main_region_started_react(transitioned_before);
 		}
 		return transitioned_after;
 	}
@@ -603,14 +931,8 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 			if (timeEvents[3]) {
 				exitSequence_main_region_started_r1_turning_left();
 				enterSequence_main_region_started_r1_forwarding_default();
-				main_region_started_react(0);
-				
 				transitioned_after = 0;
 			}
-		}
-		/* If no transition was taken then execute local reactions */
-		if (transitioned_after==transitioned_before) {
-			transitioned_after = main_region_started_react(transitioned_before);
 		}
 		return transitioned_after;
 	}
@@ -622,9 +944,111 @@ public class RobotStateMachine implements IStatemachine, ITimed {
 			if (timeEvents[4]) {
 				exitSequence_main_region_started_r1_turning_back();
 				enterSequence_main_region_started_r1_forwarding_default();
+				transitioned_after = 0;
+			}
+		}
+		return transitioned_after;
+	}
+	
+	private long main_region_started_a_sweeping__react(long transitioned_before) {
+		long transitioned_after = transitioned_before;
+		
+		if (transitioned_after<1) {
+			if (writeButton) {
+				exitSequence_main_region_started_a_sweeping_();
+				raiseDoWriting();
+				
+				enterSequence_main_region_started_a_writing_default();
 				main_region_started_react(0);
 				
-				transitioned_after = 0;
+				transitioned_after = 1;
+			} else {
+				if (moveButton) {
+					exitSequence_main_region_started_a_sweeping_();
+					enterSequence_main_region_started_a_objectMoving_default();
+					main_region_started_react(0);
+					
+					transitioned_after = 1;
+				}
+			}
+		}
+		/* If no transition was taken then execute local reactions */
+		if (transitioned_after==transitioned_before) {
+			transitioned_after = main_region_started_react(transitioned_before);
+		}
+		return transitioned_after;
+	}
+	
+	private long main_region_started_a_objectInHand_react(long transitioned_before) {
+		long transitioned_after = transitioned_before;
+		
+		if (transitioned_after<1) {
+			if (reachDestination) {
+				exitSequence_main_region_started_a_objectInHand();
+				raiseReleaseObject();
+				
+				enterSequence_main_region_started_a_objectMoving_default();
+				main_region_started_react(0);
+				
+				transitioned_after = 1;
+			}
+		}
+		/* If no transition was taken then execute local reactions */
+		if (transitioned_after==transitioned_before) {
+			transitioned_after = main_region_started_react(transitioned_before);
+		}
+		return transitioned_after;
+	}
+	
+	private long main_region_started_a_writing_react(long transitioned_before) {
+		long transitioned_after = transitioned_before;
+		
+		if (transitioned_after<1) {
+			if (stopWriting) {
+				exitSequence_main_region_started_a_writing();
+				enterSequence_main_region_started_a_sweeping__default();
+				main_region_started_react(0);
+				
+				transitioned_after = 1;
+			}
+		}
+		/* If no transition was taken then execute local reactions */
+		if (transitioned_after==transitioned_before) {
+			transitioned_after = main_region_started_react(transitioned_before);
+		}
+		return transitioned_after;
+	}
+	
+	private long main_region_started_a_objectMoving_react(long transitioned_before) {
+		long transitioned_after = transitioned_before;
+		
+		if (transitioned_after<1) {
+			if (detectObject) {
+				exitSequence_main_region_started_a_objectMoving();
+				raiseCatchObject();
+				
+				enterSequence_main_region_started_a_objectInHand_default();
+				main_region_started_react(0);
+				
+				transitioned_after = 1;
+			} else {
+				if (stopMoving) {
+					exitSequence_main_region_started_a_objectMoving();
+					enterSequence_main_region_started_a_sweeping__default();
+					main_region_started_react(0);
+					
+					transitioned_after = 1;
+				} else {
+					if (timeEvents[5]) {
+						exitSequence_main_region_started_a_objectMoving();
+						raiseSearchObject();
+						
+						enterSequence_main_region_started_a_objectMoving_default();
+						main_region_started_react(0);
+						
+						transitioned_after = 1;
+					}
+				}
 			}
 		}
 		/* If no transition was taken then execute local reactions */

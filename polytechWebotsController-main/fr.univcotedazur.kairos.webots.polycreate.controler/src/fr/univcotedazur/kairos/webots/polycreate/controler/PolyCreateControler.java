@@ -121,7 +121,7 @@ public class PolyCreateControler extends Supervisor {
 		theFSM.getLeftTurn().subscribe(new myLeftTurnObserver(this));
 		theFSM.getRightTurn().subscribe(new myRightTurnObserver(this));
 		theFSM.getBackTurn().subscribe(new myGoBackwardObserver(this));
-		theFSM.getIsBump().subscribe(new myIsBumpObserver(this));
+//		theFSM.getIsBump().subscribe(new myIsBumpObserver(this));
 
 		
 
@@ -307,41 +307,117 @@ public class PolyCreateControler extends Supervisor {
 	public void backTurn() {
 		goBackward();
 		passiveWait(0.5);
-		turn(Math.PI);
+//		turn(Math.PI);
 	}
 	
 	public void leftTurn() {
 		 
-			System.out.println("          Left obstacle detected\n");
-			goBackward();
-			passiveWait(0.5);
-			turn(Math.PI * randdouble()+0.6);
+		System.out.println("          Left obstacle detected\n");
+		goBackward();
+		passiveWait(0.5);
+		turn(Math.PI * randdouble()+0.6);
 		
 		
 	}
 
 	public void rightTurn() {
 		
-			System.out.println("          Right obstacle detected\n");
-			goBackward();
-			passiveWait(0.5);
-			turn(-Math.PI * randdouble()+0.6);
+		System.out.println("          Right obstacle detected\n");
+		goBackward();
+		passiveWait(0.5);
+		turn(-Math.PI * randdouble()+0.6);
 			
 		
 	}
 	
 	public void isBump() {
-		if (isThereVirtualwall()) {
-			System.out.println("Virtual wall detected\n");
-			theFSM.raiseSenseFall();
-		} else if (isThereCollisionAtLeft() || frontLeftDistanceSensor.getValue() < 250) {
-			System.out.println("          Left obstacle detected\n");
-			theFSM.raiseLeftBump();
-		} else if (isThereCollisionAtRight()|| frontRightDistanceSensor.getValue() < 250 || frontDistanceSensor.getValue() < 250) {
-			System.out.println("          Right obstacle detected\n");
-			theFSM.raiseRightBump();
-		} 
+//		if (isThereVirtualwall()) {
+//			System.out.println("Virtual wall detected\n");
+//			theFSM.raiseSenseFall();
+//		} else if (isThereCollisionAtLeft() || frontLeftDistanceSensor.getValue() < 250) {
+//			System.out.println("          Left obstacle detected\n");
+//			theFSM.raiseLeftBump();
+//		} else if (isThereCollisionAtRight()|| frontRightDistanceSensor.getValue() < 250 || frontDistanceSensor.getValue() < 250) {
+//			System.out.println("          Right obstacle detected\n");
+//			theFSM.raiseRightBump();
+//		} 
+		
+		try {
+			openGripper();
+			pen.write(true);
+			ledOn.set(1);
+			passiveWait(0.5);
+			System.out.println("let's start");
+			while (true) {
+				/**
+				 * The position and orientation are expressed relatively to the camera (the relative position is the one of the center of the object which can differ from its origin) and the units are meter and radian.
+				 * https://www.cyberbotics.com/doc/reference/camera?tab-language=python#wb_camera_has_recognition
+				 */
+				Node anObj = getFromDef("can"); //should not be there, only to have another orientation for testing...
+				passiveWait(0.1);
+				
+			//	System.out.println("the orientation of the can is " +controler.computeRelativeObjectOrientation(anObj.getPosition(),anObj.getOrientation()));
+				
+				System.out.println("->  the orientation of the robot is " +Math.atan2(getSelf().getOrientation()[0], getSelf().getOrientation()[8]));
+				System.out.println("    the position of the robot is " +Math.round(getSelf().getPosition()[0]*100)+";"+Math.round(getSelf().getPosition()[2]*100));
+
+				System.out.println("    front distance: "+frontDistanceSensor.getValue());
+				
+				CameraRecognitionObject[] backObjs = backCamera.getRecognitionObjects();
+				if (backObjs.length > 0) {
+					CameraRecognitionObject obj = backObjs[0];
+					int oid = obj.getId();
+//					Node obj2 = controler.getFromId(oid);
+					double[] backObjPos = obj.getPosition();
+					/**
+					 * The position and orientation are expressed relatively to the camera (the relative position is the one of the center of the object which can differ from its origin) and the units are meter and radian.
+					 */
+					System.out.println("        I saw an object on back Camera at : "+backObjPos[0]+","+backObjPos[1]);
+				}
+				CameraRecognitionObject[] frontObjs = frontCamera.getRecognitionObjects();
+				if (frontObjs.length > 0) {
+					for(CameraRecognitionObject obj : frontObjs) {
+						double[] frontObjPos = obj.getPosition();
+						System.out.println("        I saw "+obj.getModel()+" on front Camera at : "+((double)Math.round(frontObjPos[1]*1000))/10+"; "+Math.round(frontObjPos[0]*180/Math.PI));
+					}
+				}
+				System.out.println("         gripper distance sensor is "+getObjectDistanceToGripper());
+				if (isThereVirtualwall()) {
+					System.out.println("Virtual wall detected\n");
+					turn(Math.PI);
+				} else if (isThereCollisionAtLeft() || frontLeftDistanceSensor.getValue() < 250) {
+
+					System.out.println("          Left obstacle detected\n");
+//					controler.goBackward();
+//					controler.passiveWait(0.5);
+//					controler.turn(Math.PI * controler.randdouble()+0.6);
+					theFSM.raiseLeftBump();
+				} else if (isThereCollisionAtRight()|| frontRightDistanceSensor.getValue() < 250 ||frontDistanceSensor.getValue() < 250) {
+					System.out.println("          Right obstacle detected\n");
+//					controler.goBackward();
+//					controler.passiveWait(0.5);
+//					controler.turn(-Math.PI * controler.randdouble()+0.6);
+					theFSM.raiseRightBump();
+				} else {
+					goForward();
+				}
+				flushIRReceiver();
+				
+				
+				
+				
+				
+			}
+
+		}catch (Exception e) {
+			delete();
+		}
+
+		
+
 	}
+	
+	
 	
 	public void stop() {
 		leftMotor.setVelocity(NULL_SPEED);
@@ -416,81 +492,86 @@ public class PolyCreateControler extends Supervisor {
 
 	public static void main(String[] args) {
 		PolyCreateControler controler = new PolyCreateControler();
-		
-
-
-		try {
-			controler.openGripper();
-			controler.pen.write(true);
-			controler.ledOn.set(1);
-			controler.passiveWait(0.5);
-			System.out.println("let's start");
-			while (true) {
-				/**
-				 * The position and orientation are expressed relatively to the camera (the relative position is the one of the center of the object which can differ from its origin) and the units are meter and radian.
-				 * https://www.cyberbotics.com/doc/reference/camera?tab-language=python#wb_camera_has_recognition
-				 */
-				Node anObj = controler.getFromDef("can"); //should not be there, only to have another orientation for testing...
-				controler.passiveWait(0.1);
-				
-			//	System.out.println("the orientation of the can is " +controler.computeRelativeObjectOrientation(anObj.getPosition(),anObj.getOrientation()));
-				
-				System.out.println("->  the orientation of the robot is " +Math.atan2(controler.getSelf().getOrientation()[0], controler.getSelf().getOrientation()[8]));
-				System.out.println("    the position of the robot is " +Math.round(controler.getSelf().getPosition()[0]*100)+";"+Math.round(controler.getSelf().getPosition()[2]*100));
-
-				System.out.println("    front distance: "+controler.frontDistanceSensor.getValue());
-				
-				CameraRecognitionObject[] backObjs = controler.backCamera.getRecognitionObjects();
-				if (backObjs.length > 0) {
-					CameraRecognitionObject obj = backObjs[0];
-					int oid = obj.getId();
-//					Node obj2 = controler.getFromId(oid);
-					double[] backObjPos = obj.getPosition();
-					/**
-					 * The position and orientation are expressed relatively to the camera (the relative position is the one of the center of the object which can differ from its origin) and the units are meter and radian.
-					 */
-					System.out.println("        I saw an object on back Camera at : "+backObjPos[0]+","+backObjPos[1]);
-				}
-				CameraRecognitionObject[] frontObjs = controler.frontCamera.getRecognitionObjects();
-				if (frontObjs.length > 0) {
-					for(CameraRecognitionObject obj : frontObjs) {
-						double[] frontObjPos = obj.getPosition();
-						System.out.println("        I saw "+obj.getModel()+" on front Camera at : "+((double)Math.round(frontObjPos[1]*1000))/10+"; "+Math.round(frontObjPos[0]*180/Math.PI));
-					}
-				}
-				System.out.println("         gripper distance sensor is "+controler.getObjectDistanceToGripper());
-				if (controler.isThereVirtualwall()) {
-					System.out.println("Virtual wall detected\n");
-					controler.turn(Math.PI);
-				} else if (controler.isThereCollisionAtLeft() || controler.frontLeftDistanceSensor.getValue() < 250) {
-					System.out.println("          Left obstacle detected\n");
-					controler.goBackward();
-					controler.passiveWait(0.5);
-					controler.turn(Math.PI * controler.randdouble()+0.6);
-				} else if (controler.isThereCollisionAtRight()|| controler.frontRightDistanceSensor.getValue() < 250 || controler.frontDistanceSensor.getValue() < 250) {
-					System.out.println("          Right obstacle detected\n");
-					controler.goBackward();
-					controler.passiveWait(0.5);
-					controler.turn(-Math.PI * controler.randdouble()+0.6);
-				} else {
-					controler.goForward();
-				}
-				controler.flushIRReceiver();
-				
-				
-				
-				
-				
-			}
-
-		}catch (Exception e) {
-			controler.delete();
+		controler.isBump();
 		}
-
 		
 
-	}
-	
+
+//		try {
+//			controler.openGripper();
+//			controler.pen.write(true);
+//			controler.ledOn.set(1);
+//			controler.passiveWait(0.5);
+//			System.out.println("let's start");
+//			while (true) {
+//				/**
+//				 * The position and orientation are expressed relatively to the camera (the relative position is the one of the center of the object which can differ from its origin) and the units are meter and radian.
+//				 * https://www.cyberbotics.com/doc/reference/camera?tab-language=python#wb_camera_has_recognition
+//				 */
+//				Node anObj = controler.getFromDef("can"); //should not be there, only to have another orientation for testing...
+//				controler.passiveWait(0.1);
+//				
+//			//	System.out.println("the orientation of the can is " +controler.computeRelativeObjectOrientation(anObj.getPosition(),anObj.getOrientation()));
+//				
+//				System.out.println("->  the orientation of the robot is " +Math.atan2(controler.getSelf().getOrientation()[0], controler.getSelf().getOrientation()[8]));
+//				System.out.println("    the position of the robot is " +Math.round(controler.getSelf().getPosition()[0]*100)+";"+Math.round(controler.getSelf().getPosition()[2]*100));
+//
+//				System.out.println("    front distance: "+controler.frontDistanceSensor.getValue());
+//				
+//				CameraRecognitionObject[] backObjs = controler.backCamera.getRecognitionObjects();
+//				if (backObjs.length > 0) {
+//					CameraRecognitionObject obj = backObjs[0];
+//					int oid = obj.getId();
+////					Node obj2 = controler.getFromId(oid);
+//					double[] backObjPos = obj.getPosition();
+//					/**
+//					 * The position and orientation are expressed relatively to the camera (the relative position is the one of the center of the object which can differ from its origin) and the units are meter and radian.
+//					 */
+//					System.out.println("        I saw an object on back Camera at : "+backObjPos[0]+","+backObjPos[1]);
+//				}
+//				CameraRecognitionObject[] frontObjs = controler.frontCamera.getRecognitionObjects();
+//				if (frontObjs.length > 0) {
+//					for(CameraRecognitionObject obj : frontObjs) {
+//						double[] frontObjPos = obj.getPosition();
+//						System.out.println("        I saw "+obj.getModel()+" on front Camera at : "+((double)Math.round(frontObjPos[1]*1000))/10+"; "+Math.round(frontObjPos[0]*180/Math.PI));
+//					}
+//				}
+//				System.out.println("         gripper distance sensor is "+controler.getObjectDistanceToGripper());
+//				if (controler.isThereVirtualwall()) {
+//					System.out.println("Virtual wall detected\n");
+//					controler.turn(Math.PI);
+//				} else if (controler.isThereCollisionAtLeft() || controler.frontLeftDistanceSensor.getValue() < 250) {
+//
+//					System.out.println("          Left obstacle detected\n");
+////					controler.goBackward();
+////					controler.passiveWait(0.5);
+////					controler.turn(Math.PI * controler.randdouble()+0.6);
+//					controler.leftTurn();
+//				} else if (controler.isThereCollisionAtRight()|| controler.frontRightDistanceSensor.getValue() < 250 || controler.frontDistanceSensor.getValue() < 250) {
+//					System.out.println("          Right obstacle detected\n");
+////					controler.goBackward();
+////					controler.passiveWait(0.5);
+////					controler.turn(-Math.PI * controler.randdouble()+0.6);
+//					controler.rightTurn();
+//				} else {
+//					controler.goForward();
+//				}
+//				controler.flushIRReceiver();
+//				
+//				
+//				
+//				
+//				
+//			}
+//
+//		}catch (Exception e) {
+//			controler.delete();
+//		}
+//
+//		
+//
+//	}
+//	
 
 	@Override
 	protected void finalize() {
